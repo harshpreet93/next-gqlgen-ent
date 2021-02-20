@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/harshpreet93/next-gqlgen-ent/backend/ent/pet"
 	"github.com/harshpreet93/next-gqlgen-ent/backend/ent/predicate"
+	"github.com/harshpreet93/next-gqlgen-ent/backend/ent/user"
 )
 
 // PetUpdate is the builder for updating Pet entities.
@@ -26,9 +27,51 @@ func (pu *PetUpdate) Where(ps ...predicate.Pet) *PetUpdate {
 	return pu
 }
 
+// SetName sets the "name" field.
+func (pu *PetUpdate) SetName(s string) *PetUpdate {
+	pu.mutation.SetName(s)
+	return pu
+}
+
+// AddOwnerIDs adds the "owner" edge to the User entity by IDs.
+func (pu *PetUpdate) AddOwnerIDs(ids ...int) *PetUpdate {
+	pu.mutation.AddOwnerIDs(ids...)
+	return pu
+}
+
+// AddOwner adds the "owner" edges to the User entity.
+func (pu *PetUpdate) AddOwner(u ...*User) *PetUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return pu.AddOwnerIDs(ids...)
+}
+
 // Mutation returns the PetMutation object of the builder.
 func (pu *PetUpdate) Mutation() *PetMutation {
 	return pu.mutation
+}
+
+// ClearOwner clears all "owner" edges to the User entity.
+func (pu *PetUpdate) ClearOwner() *PetUpdate {
+	pu.mutation.ClearOwner()
+	return pu
+}
+
+// RemoveOwnerIDs removes the "owner" edge to User entities by IDs.
+func (pu *PetUpdate) RemoveOwnerIDs(ids ...int) *PetUpdate {
+	pu.mutation.RemoveOwnerIDs(ids...)
+	return pu
+}
+
+// RemoveOwner removes "owner" edges to User entities.
+func (pu *PetUpdate) RemoveOwner(u ...*User) *PetUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return pu.RemoveOwnerIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -100,6 +143,67 @@ func (pu *PetUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if value, ok := pu.mutation.Name(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: pet.FieldName,
+		})
+	}
+	if pu.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   pet.OwnerTable,
+			Columns: pet.OwnerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedOwnerIDs(); len(nodes) > 0 && !pu.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   pet.OwnerTable,
+			Columns: pet.OwnerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   pet.OwnerTable,
+			Columns: pet.OwnerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{pet.Label}
@@ -118,9 +222,51 @@ type PetUpdateOne struct {
 	mutation *PetMutation
 }
 
+// SetName sets the "name" field.
+func (puo *PetUpdateOne) SetName(s string) *PetUpdateOne {
+	puo.mutation.SetName(s)
+	return puo
+}
+
+// AddOwnerIDs adds the "owner" edge to the User entity by IDs.
+func (puo *PetUpdateOne) AddOwnerIDs(ids ...int) *PetUpdateOne {
+	puo.mutation.AddOwnerIDs(ids...)
+	return puo
+}
+
+// AddOwner adds the "owner" edges to the User entity.
+func (puo *PetUpdateOne) AddOwner(u ...*User) *PetUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return puo.AddOwnerIDs(ids...)
+}
+
 // Mutation returns the PetMutation object of the builder.
 func (puo *PetUpdateOne) Mutation() *PetMutation {
 	return puo.mutation
+}
+
+// ClearOwner clears all "owner" edges to the User entity.
+func (puo *PetUpdateOne) ClearOwner() *PetUpdateOne {
+	puo.mutation.ClearOwner()
+	return puo
+}
+
+// RemoveOwnerIDs removes the "owner" edge to User entities by IDs.
+func (puo *PetUpdateOne) RemoveOwnerIDs(ids ...int) *PetUpdateOne {
+	puo.mutation.RemoveOwnerIDs(ids...)
+	return puo
+}
+
+// RemoveOwner removes "owner" edges to User entities.
+func (puo *PetUpdateOne) RemoveOwner(u ...*User) *PetUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return puo.RemoveOwnerIDs(ids...)
 }
 
 // Save executes the query and returns the updated Pet entity.
@@ -196,6 +342,67 @@ func (puo *PetUpdateOne) sqlSave(ctx context.Context) (_node *Pet, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := puo.mutation.Name(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: pet.FieldName,
+		})
+	}
+	if puo.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   pet.OwnerTable,
+			Columns: pet.OwnerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedOwnerIDs(); len(nodes) > 0 && !puo.mutation.OwnerCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   pet.OwnerTable,
+			Columns: pet.OwnerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   pet.OwnerTable,
+			Columns: pet.OwnerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Pet{config: puo.config}
 	_spec.Assign = _node.assignValues

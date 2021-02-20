@@ -1,6 +1,11 @@
 package schema
 
-import "entgo.io/ent"
+import (
+	"entgo.io/contrib/entgql"
+	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
+)
 
 // User holds the schema definition for the User entity.
 type User struct {
@@ -9,10 +14,15 @@ type User struct {
 
 // Fields of the User.
 func (User) Fields() []ent.Field {
-	return nil
+	return []ent.Field{
+		field.String("name").
+			Annotations(entgql.OrderField("NAME")),
+	}
 }
 
 // Edges of the User.
 func (User) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("pet", Pet.Type),
+	}
 }

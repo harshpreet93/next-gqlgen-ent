@@ -1,6 +1,11 @@
 package schema
 
-import "entgo.io/ent"
+import (
+	"entgo.io/contrib/entgql"
+	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
+	"entgo.io/ent/schema/field"
+)
 
 // Pet holds the schema definition for the Pet entity.
 type Pet struct {
@@ -9,10 +14,16 @@ type Pet struct {
 
 // Fields of the Pet.
 func (Pet) Fields() []ent.Field {
-	return nil
+	return []ent.Field{
+		field.String("name").
+			Annotations(entgql.OrderField("name")),
+	}
 }
 
 // Edges of the Pet.
 func (Pet) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.From("owner", User.Type).
+			Ref("pet"),
+	}
 }

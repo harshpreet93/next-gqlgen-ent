@@ -1,0 +1,14 @@
+schema:
+  - people.graphql
+
+resolver:
+  layout: follow-schema
+  dir: .
+
+autobind:
+  - github.com/harshpreet93/next-gqlgen-ent/backend/ent
+
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.IntID

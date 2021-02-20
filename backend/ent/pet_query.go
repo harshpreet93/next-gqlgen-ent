@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"math"
@@ -13,6 +14,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/harshpreet93/next-gqlgen-ent/backend/ent/pet"
 	"github.com/harshpreet93/next-gqlgen-ent/backend/ent/predicate"
+	"github.com/harshpreet93/next-gqlgen-ent/backend/ent/user"
 )
 
 // PetQuery is the builder for querying Pet entities.
@@ -23,6 +25,8 @@ type PetQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.Pet
+	// eager-loading edges.
+	withOwner *UserQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -50,6 +54,28 @@ func (pq *PetQuery) Offset(offset int) *PetQuery {
 func (pq *PetQuery) Order(o ...OrderFunc) *PetQuery {
 	pq.order = append(pq.order, o...)
 	return pq
+}
+
+// QueryOwner chains the current query on the "owner" edge.
+func (pq *PetQuery) QueryOwner() *UserQuery {
+	query := &UserQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(pet.Table, pet.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, pet.OwnerTable, pet.OwnerPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Pet entity from the query.
@@ -233,14 +259,39 @@ func (pq *PetQuery) Clone() *PetQuery {
 		offset:     pq.offset,
 		order:      append([]OrderFunc{}, pq.order...),
 		predicates: append([]predicate.Pet{}, pq.predicates...),
+		withOwner:  pq.withOwner.Clone(),
 		// clone intermediate query.
 		sql:  pq.sql.Clone(),
 		path: pq.path,
 	}
 }
 
+// WithOwner tells the query-builder to eager-load the nodes that are connected to
+// the "owner" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PetQuery) WithOwner(opts ...func(*UserQuery)) *PetQuery {
+	query := &UserQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withOwner = query
+	return pq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.Pet.Query().
+//		GroupBy(pet.FieldName).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
+//
 func (pq *PetQuery) GroupBy(field string, fields ...string) *PetGroupBy {
 	group := &PetGroupBy{config: pq.config}
 	group.fields = append([]string{field}, fields...)
@@ -255,6 +306,17 @@ func (pq *PetQuery) GroupBy(field string, fields ...string) *PetGroupBy {
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//	}
+//
+//	client.Pet.Query().
+//		Select(pet.FieldName).
+//		Scan(ctx, &v)
+//
 func (pq *PetQuery) Select(field string, fields ...string) *PetSelect {
 	pq.fields = append([]string{field}, fields...)
 	return &PetSelect{PetQuery: pq}
@@ -278,8 +340,11 @@ func (pq *PetQuery) prepareQuery(ctx context.Context) error {
 
 func (pq *PetQuery) sqlAll(ctx context.Context) ([]*Pet, error) {
 	var (
-		nodes = []*Pet{}
-		_spec = pq.querySpec()
+		nodes       = []*Pet{}
+		_spec       = pq.querySpec()
+		loadedTypes = [1]bool{
+			pq.withOwner != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &Pet{config: pq.config}
@@ -291,6 +356,7 @@ func (pq *PetQuery) sqlAll(ctx context.Context) ([]*Pet, error) {
 			return fmt.Errorf("ent: Assign called without calling ScanValues")
 		}
 		node := nodes[len(nodes)-1]
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if err := sqlgraph.QueryNodes(ctx, pq.driver, _spec); err != nil {
@@ -299,6 +365,71 @@ func (pq *PetQuery) sqlAll(ctx context.Context) ([]*Pet, error) {
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+
+	if query := pq.withOwner; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		ids := make(map[int]*Pet, len(nodes))
+		for _, node := range nodes {
+			ids[node.ID] = node
+			fks = append(fks, node.ID)
+			node.Edges.Owner = []*User{}
+		}
+		var (
+			edgeids []int
+			edges   = make(map[int][]*Pet)
+		)
+		_spec := &sqlgraph.EdgeQuerySpec{
+			Edge: &sqlgraph.EdgeSpec{
+				Inverse: true,
+				Table:   pet.OwnerTable,
+				Columns: pet.OwnerPrimaryKey,
+			},
+			Predicate: func(s *sql.Selector) {
+				s.Where(sql.InValues(pet.OwnerPrimaryKey[1], fks...))
+			},
+
+			ScanValues: func() [2]interface{} {
+				return [2]interface{}{&sql.NullInt64{}, &sql.NullInt64{}}
+			},
+			Assign: func(out, in interface{}) error {
+				eout, ok := out.(*sql.NullInt64)
+				if !ok || eout == nil {
+					return fmt.Errorf("unexpected id value for edge-out")
+				}
+				ein, ok := in.(*sql.NullInt64)
+				if !ok || ein == nil {
+					return fmt.Errorf("unexpected id value for edge-in")
+				}
+				outValue := int(eout.Int64)
+				inValue := int(ein.Int64)
+				node, ok := ids[outValue]
+				if !ok {
+					return fmt.Errorf("unexpected node id in edges: %v", outValue)
+				}
+				edgeids = append(edgeids, inValue)
+				edges[inValue] = append(edges[inValue], node)
+				return nil
+			},
+		}
+		if err := sqlgraph.QueryEdges(ctx, pq.driver, _spec); err != nil {
+			return nil, fmt.Errorf(`query edges "owner": %v`, err)
+		}
+		query.Where(user.IDIn(edgeids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := edges[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected "owner" node returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Owner = append(nodes[i].Edges.Owner, n)
+			}
+		}
+	}
+
 	return nodes, nil
 }
 

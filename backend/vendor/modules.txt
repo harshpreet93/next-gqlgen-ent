@@ -24,8 +24,34 @@ entgo.io/ent/schema/field
 entgo.io/ent/schema/index
 # github.com/99designs/gqlgen v0.13.0
 ## explicit
+github.com/99designs/gqlgen/api
+github.com/99designs/gqlgen/cmd
+github.com/99designs/gqlgen/codegen
+github.com/99designs/gqlgen/codegen/config
+github.com/99designs/gqlgen/codegen/templates
+github.com/99designs/gqlgen/complexity
 github.com/99designs/gqlgen/graphql
 github.com/99designs/gqlgen/graphql/errcode
+github.com/99designs/gqlgen/graphql/executor
+github.com/99designs/gqlgen/graphql/handler
+github.com/99designs/gqlgen/graphql/handler/extension
+github.com/99designs/gqlgen/graphql/handler/lru
+github.com/99designs/gqlgen/graphql/handler/transport
+github.com/99designs/gqlgen/graphql/introspection
+github.com/99designs/gqlgen/graphql/playground
+github.com/99designs/gqlgen/handler
+github.com/99designs/gqlgen/internal/code
+github.com/99designs/gqlgen/internal/imports
+github.com/99designs/gqlgen/internal/rewrite
+github.com/99designs/gqlgen/plugin
+github.com/99designs/gqlgen/plugin/federation
+github.com/99designs/gqlgen/plugin/modelgen
+github.com/99designs/gqlgen/plugin/resolvergen
+github.com/99designs/gqlgen/plugin/servergen
+# github.com/agnivade/levenshtein v1.1.0
+github.com/agnivade/levenshtein
+# github.com/cpuguy83/go-md2man/v2 v2.0.0
+github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/go-bindata/go-bindata v1.0.1-0.20190711162640-ee3c2418e368
 github.com/go-bindata/go-bindata
 # github.com/go-openapi/inflect v0.19.0
@@ -35,18 +61,38 @@ github.com/go-openapi/inflect
 github.com/go-sql-driver/mysql
 # github.com/google/uuid v1.2.0
 github.com/google/uuid
+# github.com/gorilla/websocket v1.4.2
+github.com/gorilla/websocket
 # github.com/hashicorp/errwrap v1.1.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.1.0
 ## explicit
 github.com/hashicorp/go-multierror
+# github.com/hashicorp/golang-lru v0.5.4
+github.com/hashicorp/golang-lru
+github.com/hashicorp/golang-lru/simplelru
 # github.com/joho/godotenv v1.3.0
 ## explicit
 github.com/joho/godotenv
+# github.com/mitchellh/mapstructure v1.4.1
+github.com/mitchellh/mapstructure
+# github.com/pkg/errors v0.9.1
+github.com/pkg/errors
+# github.com/russross/blackfriday/v2 v2.0.1
+github.com/russross/blackfriday/v2
+# github.com/shurcooL/sanitized_anchor_name v1.0.0
+github.com/shurcooL/sanitized_anchor_name
+# github.com/urfave/cli/v2 v2.3.0
+github.com/urfave/cli/v2
 # github.com/vektah/gqlparser/v2 v2.1.0
 ## explicit
+github.com/vektah/gqlparser/v2
 github.com/vektah/gqlparser/v2/ast
 github.com/vektah/gqlparser/v2/gqlerror
+github.com/vektah/gqlparser/v2/lexer
+github.com/vektah/gqlparser/v2/parser
+github.com/vektah/gqlparser/v2/validator
+github.com/vektah/gqlparser/v2/validator/rules
 # github.com/vmihailenco/msgpack/v5 v5.0.0-beta.9
 ## explicit
 github.com/vmihailenco/msgpack/v5
@@ -81,3 +127,5 @@ golang.org/x/tools/internal/typesinternal
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
+# gopkg.in/yaml.v2 v2.3.0
+gopkg.in/yaml.v2

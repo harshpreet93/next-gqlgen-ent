@@ -11,6 +11,7 @@ var (
 	// PetsColumns holds the columns for the "pets" table.
 	PetsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
 	}
 	// PetsTable holds the schema information for the "pets" table.
 	PetsTable = &schema.Table{
@@ -22,6 +23,7 @@ var (
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
@@ -30,12 +32,42 @@ var (
 		PrimaryKey:  []*schema.Column{UsersColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{},
 	}
+	// UserPetColumns holds the columns for the "user_pet" table.
+	UserPetColumns = []*schema.Column{
+		{Name: "user_id", Type: field.TypeInt},
+		{Name: "pet_id", Type: field.TypeInt},
+	}
+	// UserPetTable holds the schema information for the "user_pet" table.
+	UserPetTable = &schema.Table{
+		Name:       "user_pet",
+		Columns:    UserPetColumns,
+		PrimaryKey: []*schema.Column{UserPetColumns[0], UserPetColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:  "user_pet_user_id",
+				Columns: []*schema.Column{UserPetColumns[0]},
+
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:  "user_pet_pet_id",
+				Columns: []*schema.Column{UserPetColumns[1]},
+
+				RefColumns: []*schema.Column{PetsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		PetsTable,
 		UsersTable,
+		UserPetTable,
 	}
 )
 
 func init() {
+	UserPetTable.ForeignKeys[0].RefTable = UsersTable
+	UserPetTable.ForeignKeys[1].RefTable = PetsTable
 }

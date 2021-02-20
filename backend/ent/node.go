@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -50,8 +51,27 @@ func (pe *Pet) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     pe.ID,
 		Type:   "Pet",
-		Fields: make([]*Field, 0),
-		Edges:  make([]*Edge, 0),
+		Fields: make([]*Field, 1),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(pe.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "User",
+		Name: "owner",
+	}
+	node.Edges[0].IDs, err = pe.QueryOwner().
+		Select(user.FieldID).
+		Ints(ctx)
+	if err != nil {
+		return nil, err
 	}
 	return node, nil
 }
@@ -60,8 +80,27 @@ func (u *User) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     u.ID,
 		Type:   "User",
-		Fields: make([]*Field, 0),
-		Edges:  make([]*Edge, 0),
+		Fields: make([]*Field, 1),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(u.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Pet",
+		Name: "pet",
+	}
+	node.Edges[0].IDs, err = u.QueryPet().
+		Select(pet.FieldID).
+		Ints(ctx)
+	if err != nil {
+		return nil, err
 	}
 	return node, nil
 }

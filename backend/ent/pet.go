@@ -12,9 +12,32 @@ import (
 
 // Pet is the model entity for the Pet schema.
 type Pet struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the PetQuery when eager-loading is set.
+	Edges PetEdges `json:"edges"`
+}
+
+// PetEdges holds the relations/edges for other nodes in the graph.
+type PetEdges struct {
+	// Owner holds the value of the owner edge.
+	Owner []*User `json:"owner,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// OwnerOrErr returns the Owner value or an error if the edge
+// was not loaded in eager-loading.
+func (e PetEdges) OwnerOrErr() ([]*User, error) {
+	if e.loadedTypes[0] {
+		return e.Owner, nil
+	}
+	return nil, &NotLoadedError{edge: "owner"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -24,6 +47,8 @@ func (*Pet) scanValues(columns []string) ([]interface{}, error) {
 		switch columns[i] {
 		case pet.FieldID:
 			values[i] = &sql.NullInt64{}
+		case pet.FieldName:
+			values[i] = &sql.NullString{}
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Pet", columns[i])
 		}
@@ -45,9 +70,20 @@ func (pe *Pet) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			pe.ID = int(value.Int64)
+		case pet.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				pe.Name = value.String
+			}
 		}
 	}
 	return nil
+}
+
+// QueryOwner queries the "owner" edge of the Pet entity.
+func (pe *Pet) QueryOwner() *UserQuery {
+	return (&PetClient{config: pe.config}).QueryOwner(pe)
 }
 
 // Update returns a builder for updating this Pet.
@@ -73,6 +109,8 @@ func (pe *Pet) String() string {
 	var builder strings.Builder
 	builder.WriteString("Pet(")
 	builder.WriteString(fmt.Sprintf("id=%v", pe.ID))
+	builder.WriteString(", name=")
+	builder.WriteString(pe.Name)
 	builder.WriteByte(')')
 	return builder.String()
 }

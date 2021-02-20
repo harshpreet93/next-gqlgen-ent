@@ -4,11 +4,13 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/harshpreet93/next-gqlgen-ent/backend/ent/pet"
+	"github.com/harshpreet93/next-gqlgen-ent/backend/ent/user"
 )
 
 // PetCreate is the builder for creating a Pet entity.
@@ -16,6 +18,27 @@ type PetCreate struct {
 	config
 	mutation *PetMutation
 	hooks    []Hook
+}
+
+// SetName sets the "name" field.
+func (pc *PetCreate) SetName(s string) *PetCreate {
+	pc.mutation.SetName(s)
+	return pc
+}
+
+// AddOwnerIDs adds the "owner" edge to the User entity by IDs.
+func (pc *PetCreate) AddOwnerIDs(ids ...int) *PetCreate {
+	pc.mutation.AddOwnerIDs(ids...)
+	return pc
+}
+
+// AddOwner adds the "owner" edges to the User entity.
+func (pc *PetCreate) AddOwner(u ...*User) *PetCreate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return pc.AddOwnerIDs(ids...)
 }
 
 // Mutation returns the PetMutation object of the builder.
@@ -69,6 +92,9 @@ func (pc *PetCreate) SaveX(ctx context.Context) *Pet {
 
 // check runs all checks and user-defined validators on the builder.
 func (pc *PetCreate) check() error {
+	if _, ok := pc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New("ent: missing required field \"name\"")}
+	}
 	return nil
 }
 
@@ -96,6 +122,33 @@ func (pc *PetCreate) createSpec() (*Pet, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	if value, ok := pc.mutation.Name(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: pet.FieldName,
+		})
+		_node.Name = value
+	}
+	if nodes := pc.mutation.OwnerIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   pet.OwnerTable,
+			Columns: pet.OwnerPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
