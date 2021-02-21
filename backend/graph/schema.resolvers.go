@@ -51,7 +51,7 @@ func (r *queryResolver) GetPet(ctx context.Context, id string) (*ent.Pet, error)
 }
 
 func (r *userResolver) Pets(ctx context.Context, obj *ent.User) ([]*ent.Pet, error) {
-	panic(fmt.Errorf("not implemented"))
+	return obj.QueryPet().All(ctx)
 }
 
 func (r *userResolver) PetsConnection(ctx context.Context, obj *ent.User, first *int, after *string) (*model.UserPetConnection, error) {
