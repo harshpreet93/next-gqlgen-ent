@@ -1,3 +1,3 @@
-package backend
+// package backend
 
-//go:generate go run ./scripts/gqlgen.go
+// //go:generate go run ./scripts/gqlgen.go

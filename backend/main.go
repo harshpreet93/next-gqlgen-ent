@@ -1,5 +1,6 @@
-package backend
+package main
 
+//go:generate go run ./scripts/gqlgen.go
 import (
 	"context"
 	"fmt"
@@ -7,9 +8,15 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/gin-gonic/gin"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/harshpreet93/next-gqlgen-ent/backend/ent"
 	"github.com/harshpreet93/next-gqlgen-ent/backend/ent/migrate"
+	"github.com/harshpreet93/next-gqlgen-ent/backend/graph"
+	"github.com/harshpreet93/next-gqlgen-ent/backend/graph/generated"
 	"github.com/joho/godotenv"
 )
 
@@ -32,6 +39,31 @@ func initDBConn(dbHost string, dbPort int, dbPass string) *ent.Client {
 	return client
 }
 
+// Defining the Graphql handler
+func graphqlHandler(dbClient *ent.Client) gin.HandlerFunc {
+	// NewExecutableSchema and Config are in the generated.go file
+	// Resolver is in the resolver.go file
+
+	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+		Resolvers: &graph.Resolver{
+			DBClient: dbClient,
+		},
+	}))
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
+// Defining the Playground handler
+func playgroundHandler() gin.HandlerFunc {
+	h := playground.Handler("GraphQL", "/query")
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
+
 func main() {
 	if os.Getenv("ENV") != "prod" {
 		err := godotenv.Load()
@@ -50,4 +82,8 @@ func main() {
 	defer conn.Close()
 	err = migrateDB(conn)
 
+	r := gin.Default()
+	r.POST("/query", graphqlHandler(conn))
+	r.GET("/", playgroundHandler())
+	r.Run()
 }
